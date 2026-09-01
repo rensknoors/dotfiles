@@ -1,6 +1,6 @@
 # Dotfiles
 
-macOS zsh config.
+macOS zsh + Cursor config.
 
 ## Setup
 
@@ -11,9 +11,25 @@ cd ~/repos/dotfiles
 ./setup.sh
 ```
 
-The script fetches plugins, backs up any existing `~/.zshrc` / `~/.zsh`, symlinks this repo in place, and installs Spaceship + nvm if Homebrew is present.
+The script:
 
-Re-run after `git pull` to sync plugins and repair links.
+- fetches zsh plugins
+- backs up existing `~/.zshrc` / `~/.zsh` / Cursor settings
+- symlinks this repo in place
+- installs Spaceship + nvm if Homebrew is present
+- installs Cursor extensions from `cursor/extensions.txt`
+
+Re-run after `git pull` to sync plugins, repair links, and install any new extensions.
+
+## Cursor
+
+`settings.json` and `keybindings.json` live in `cursor/` and are symlinked into `~/Library/Application Support/Cursor/User/`. Edits in Cursor write back to this repo — commit them.
+
+Refresh the extension list after installing something new:
+
+```sh
+cursor --list-extensions | sort > cursor/extensions.txt
+```
 
 ## Update plugins
 

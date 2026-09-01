@@ -32,6 +32,28 @@ echo "==> Symlinks"
 link "$ROOT/.zshrc" "$HOME/.zshrc"
 link "$ROOT/.zsh" "$HOME/.zsh"
 
+CURSOR_USER="$HOME/Library/Application Support/Cursor/User"
+echo "==> Cursor"
+mkdir -p "$CURSOR_USER"
+link "$ROOT/cursor/settings.json" "$CURSOR_USER/settings.json"
+link "$ROOT/cursor/keybindings.json" "$CURSOR_USER/keybindings.json"
+
+if command -v cursor >/dev/null; then
+  installed="$(cursor --list-extensions 2>/dev/null || true)"
+  while IFS= read -r ext; do
+    [[ -z "$ext" || "$ext" == \#* ]] && continue
+    if print -r -- "$installed" | grep -qx -- "$ext"; then
+      echo "    $ext already installed"
+    else
+      echo "    installing $ext"
+      cursor --install-extension "$ext"
+    fi
+  done < "$ROOT/cursor/extensions.txt"
+else
+  echo "    cursor CLI not on PATH, skipped extensions"
+  echo "    Command Palette → \"Shell Command: Install 'cursor' command in PATH\""
+fi
+
 if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   echo "==> Homebrew"
