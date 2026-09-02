@@ -952,5 +952,33 @@
     "key": "alt+cmd+s",
     "command": "workbench.action.toggleUnifiedSidebarFromKeyboard",
     "when": "!isAuxiliaryWindowFocusedContext"
+},
+{
+  "key": "cmd+k cmd+k",
+  "command": "editor.action.defineKeybinding",
+  "when": "resource == 'vscode-userdata:/Users/agxeed/Library/Application%20Support/Cursor/User/keybindings.json'"
+},
+{
+  "key": "cmd+r cmd+k",
+  "command": "-editor.action.defineKeybinding",
+  "when": "resource == 'vscode-userdata:/Users/agxeed/Library/Application%20Support/Cursor/User/keybindings.json'"
+},
+{
+  "key": "cmd+k o",
+  "command": "workbench.action.copyEditorToNewWindow",
+  "when": "activeEditor && resourceScheme != 'cursor-browser'"
+},
+{
+  "key": "cmd+r o",
+  "command": "-workbench.action.copyEditorToNewWindow",
+  "when": "activeEditor && resourceScheme != 'cursor-browser'"
+},
+{
+  "key": "cmd+k cmd+p",
+  "command": "workbench.action.showAllEditors"
+},
+{
+  "key": "cmd+r cmd+p",
+  "command": "-workbench.action.showAllEditors"
 }
 ]
