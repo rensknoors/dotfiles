@@ -38,20 +38,24 @@ mkdir -p "$CURSOR_USER"
 link "$ROOT/cursor/settings.json" "$CURSOR_USER/settings.json"
 link "$ROOT/cursor/keybindings.json" "$CURSOR_USER/keybindings.json"
 
-if command -v cursor >/dev/null; then
-  installed="$(cursor --list-extensions 2>/dev/null || true)"
+cursor_bin="$(command -v cursor 2>/dev/null || true)"
+[[ -z "$cursor_bin" && -x /Applications/Cursor.app/Contents/Resources/app/bin/cursor ]] &&
+  cursor_bin=/Applications/Cursor.app/Contents/Resources/app/bin/cursor
+
+if [[ -n "$cursor_bin" ]]; then
+  installed="$("$cursor_bin" --list-extensions 2>/dev/null || true)"
   while IFS= read -r ext; do
     [[ -z "$ext" || "$ext" == \#* ]] && continue
     if print -r -- "$installed" | grep -qx -- "$ext"; then
       echo "    $ext already installed"
     else
       echo "    installing $ext"
-      cursor --install-extension "$ext"
+      "$cursor_bin" --install-extension "$ext"
     fi
   done < "$ROOT/cursor/extensions.txt"
 else
-  echo "    cursor CLI not on PATH, skipped extensions"
-  echo "    Command Palette → \"Shell Command: Install 'cursor' command in PATH\""
+  echo "    cursor CLI not found, skipped extensions"
+  echo "    install Cursor, or Command Palette → \"Shell Command: Install 'cursor' command in PATH\""
 fi
 
 if [[ -x /opt/homebrew/bin/brew ]]; then
