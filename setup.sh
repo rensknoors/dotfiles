@@ -58,6 +58,25 @@ else
   echo "    install Cursor, or Command Palette → \"Shell Command: Install 'cursor' command in PATH\""
 fi
 
+echo "==> Claude Code"
+mkdir -p "$HOME/.claude/hooks"
+HANDOVER="$HOME/.claude/hooks/branch-handover.sh"
+link "$ROOT/claude/hooks/branch-handover.sh" "$HANDOVER"
+
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+if command -v jq &>/dev/null; then
+  [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
+  tmp="$(mktemp)"
+  jq --arg cmd "$HANDOVER" '
+    reduce ("UserPromptSubmit", "Stop", "SessionEnd") as $e (.;
+      if any(.hooks[$e][]?.hooks[]?; .command == $cmd) then .
+      else .hooks[$e] += [{hooks: [{type: "command", command: $cmd}]}] end)
+  ' "$CLAUDE_SETTINGS" > "$tmp" && mv "$tmp" "$CLAUDE_SETTINGS"
+  echo "    registered branch-handover hook in $CLAUDE_SETTINGS"
+else
+  echo "    jq not found, skipped registering branch-handover hook"
+fi
+
 if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   echo "==> Homebrew"
