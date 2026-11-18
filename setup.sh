@@ -62,19 +62,30 @@ echo "==> Claude Code"
 mkdir -p "$HOME/.claude/hooks"
 HANDOVER="$HOME/.claude/hooks/branch-handover.sh"
 link "$ROOT/claude/hooks/branch-handover.sh" "$HANDOVER"
+COLD_CACHE="$HOME/.claude/hooks/cold-cache.py"
+link "$ROOT/claude/hooks/cold-cache.py" "$COLD_CACHE"
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
-if command -v jq &>/dev/null; then
-  [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
+
+# register_hook <command> <event>...: adds the command to each event once.
+register_hook() {
+  local cmd="$1" tmp
+  shift
   tmp="$(mktemp)"
-  jq --arg cmd "$HANDOVER" '
-    reduce ("UserPromptSubmit", "Stop", "SessionEnd") as $e (.;
+  jq --arg cmd "$cmd" --args '
+    reduce $ARGS.positional[] as $e (.;
       if any(.hooks[$e][]?.hooks[]?; .command == $cmd) then .
       else .hooks[$e] += [{hooks: [{type: "command", command: $cmd}]}] end)
-  ' "$CLAUDE_SETTINGS" > "$tmp" && mv "$tmp" "$CLAUDE_SETTINGS"
-  echo "    registered branch-handover hook in $CLAUDE_SETTINGS"
+  ' "$@" < "$CLAUDE_SETTINGS" > "$tmp" && mv "$tmp" "$CLAUDE_SETTINGS"
+  echo "    registered ${cmd:t} for $* in $CLAUDE_SETTINGS"
+}
+
+if command -v jq &>/dev/null; then
+  [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
+  register_hook "$HANDOVER" UserPromptSubmit Stop SessionEnd
+  register_hook "$COLD_CACHE" UserPromptSubmit
 else
-  echo "    jq not found, skipped registering branch-handover hook"
+  echo "    jq not found, skipped registering Claude hooks"
 fi
 
 if [[ -x /opt/homebrew/bin/brew ]]; then

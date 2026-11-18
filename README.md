@@ -37,6 +37,8 @@ cursor --list-extensions | sort > cursor/extensions.txt
 
 It applies to agent worktrees under `<repo>/.claude/worktrees/`: when the agent goes idle the worktree detaches and releases its branch, so you can check it out in the main folder. On a follow-up prompt the worktree takes the branch back. If the main folder has that branch checked out, it is detached at the same commit, keeping its files and uncommitted changes, so you can keep using git there. It blocks with a message instead of losing diverged work.
 
+`claude/hooks/cold-cache.py` is symlinked and registered the same way, for `UserPromptSubmit`. When a session's prompt cache has expired (its TTL, 1h or 5m, is read from the transcript), it blocks the first prompt with a warning, because that prompt re-reads the whole context at full price. Sending again within 10 minutes goes through. Slash commands are never blocked.
+
 ## Update plugins
 
 ```sh
