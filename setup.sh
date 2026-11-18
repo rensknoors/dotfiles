@@ -50,7 +50,7 @@ if [[ -n "$cursor_bin" ]]; then
       echo "    $ext already installed"
     else
       echo "    installing $ext"
-      "$cursor_bin" --install-extension "$ext"
+      "$cursor_bin" --install-extension "$ext" || echo "    failed to install $ext, skipped"
     fi
   done < "$ROOT/cursor/extensions.txt"
 else
