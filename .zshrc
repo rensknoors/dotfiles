@@ -40,7 +40,27 @@ if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
 fi
 
 # Aliases
-alias gdel="git branch --merged | egrep -v '(^\*|master|main|dev)' | xargs git branch -d"
+unalias gdel 2>/dev/null
+gdel() {
+  git fetch origin main
+  local current
+  current=$(git branch --show-current)
+  git branch --format='%(refname:short)' | while read -r branch; do
+    case $branch in
+      main|master|dev|"$current") continue ;;
+    esac
+    if git merge-base --is-ancestor "$branch" origin/main; then
+      git branch -D "$branch"
+      continue
+    fi
+    local merged tip
+    merged=$(git log origin/main -1 --fixed-strings --grep="Merged in ${branch} (" --format='%ct')
+    [[ -z $merged ]] && continue
+    tip=$(git log -1 --format='%ct' "$branch")
+    (( tip > merged )) && continue
+    git branch -D "$branch"
+  done
+}
 
 # Plugins
 _source_if_exists() { [[ -f "$1" ]] && source "$1"; }
@@ -67,3 +87,10 @@ if [[ -d "$PNPM_HOME" ]]; then
 fi
 
 [[ -d "$HOME/.antigravity/antigravity/bin" ]] && export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
+
+# Vite+
+. "$HOME/.config/vite-plus/env"
+
+# Azure CLI completion
+autoload bashcompinit && bashcompinit
+source $(brew --prefix)/etc/bash_completion.d/az
