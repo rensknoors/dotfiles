@@ -44,23 +44,18 @@
   "[svg]": {},
   "editor.formatOnSave": true,
   "svg.preview.mode": "svg",
-  "terminal.integrated.fontFamily": "'FiraMono Nerd Font Mono', Consolas, 'Courier New', monospace",
+  "terminal.integrated.fontFamily": "'0xProto', 'FiraMono Nerd Font Mono', Consolas, 'Courier New', monospace",
   "terminal.integrated.localEchoStyle": "dim",
   "debug.console.fontFamily": "'FiraMono Nerd Font'",
-  "editor.fontFamily": "'FiraMono Nerd Font Mono', Menlo, Monaco, 'Courier New', monospace",
+  "editor.fontFamily": "'0xProto', 'FiraMono Nerd Font Mono', Menlo, Monaco, 'Courier New', monospace",
   "diffEditor.ignoreTrimWhitespace": false,
   "editor.indentSize": 2,
   "symbols.hidesExplorerArrows": false,
   "redhat.telemetry.enabled": false,
   "window.zoomLevel": 1,
   "dotnet.defaultSolution": "/usr/local/share/dotnet/dotnet",
-  "editor.pasteAs.preferences": [
-    "text.updateImports.jsts"
-  ],
-  "cursor.cpp.disabledLanguages": [
-    "yaml",
-    "markdown"
-  ],
+  "editor.pasteAs.preferences": ["text.updateImports.jsts"],
+  "cursor.cpp.disabledLanguages": ["yaml", "markdown"],
   "cursor.composer.renderPillsInsteadOfBlocks": true,
   "gitlens.launchpad.indicator.enabled": false,
   "workbench.iconTheme": "symbols",
@@ -84,33 +79,28 @@
   "gitlens.rebaseEditor.openOnPausedRebase": true,
   "workbench.editorAssociations": {
     "git-rebase-todo": "default",
-    "*.svg": "default"
+    "*.svg": "default",
   },
   "remote.SSH.remotePlatform": {
     "elliot@192.168.86.92": "linux",
     "7b22686f73744e616d65223a22656c6c696f74403139322e3136382e38362e3932227d": "linux",
     "192.168.86.92": "linux",
     "elliot": "linux",
-    "home": "linux"
+    "home": "linux",
   },
   "window.autoDetectColorScheme": false,
-  "workbench.settings.applyToAllProfiles": [
-    "editor.fontSize"
-  ],
+  "workbench.settings.applyToAllProfiles": ["editor.fontSize"],
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "js/ts.experimental.useTsgo": true,
   "[typescriptreact]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
+    "editor.defaultFormatter": "vscode.typescript-language-features",
   },
   "cursor.composer.queueMessageDefaultBehavior": "steer",
   "js/ts.updateImportsOnFileMove.enabled": "always",
   "js/ts.preferences.preferTypeOnlyAutoImports": true,
   "js/ts.preferences.includePackageJsonAutoImports": "auto",
-  "gitlens.gitCommands.skipConfirmations": [
-    "fetch:command",
-    "stash-push:command",
-    "pull:command"
-  ],
+  "gitlens.gitCommands.skipConfirmations": ["fetch:command", "stash-push:command", "pull:command"],
+  "window.newWindowProfile": ".NET",
 }
