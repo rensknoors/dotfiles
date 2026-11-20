@@ -4,6 +4,13 @@ import { isShown } from "./prefs.js";
 import { PROVIDERS } from "../providers/index.js";
 
 const STALE_AFTER = 15 * 60; // s
+const BAR_WINDOW_SEC = 5 * 3600; // the bar shows each provider's 5-hour limit only
+
+// A provider's main 5-hour window: providers list their main limit first, so the
+// first 5-hour one (Claude's session, Codex's own, Gemini's Gemini models) is it.
+export function barWindow(windows) {
+  return windows.find((w) => w.durationSec === BAR_WINDOW_SEC) ?? null;
+}
 
 // text is the full reading; brief is what's left when the bar runs out of room:
 // an amber or red window keeps its time, a calm one gives it up.
@@ -100,9 +107,8 @@ export function barModel(states, prefs, now, providers = PROVIDERS) {
       mark = "!";
       source = st.lastGood;
     }
-    const segments = (source?.windows ?? [])
-      .filter((w) => isShown(prefs, p.id, w.id))
-      .map((w) => segmentView(w, now, prefs.showResetTime));
+    const main = barWindow(source?.windows ?? []);
+    const segments = main ? [segmentView(main, now, prefs.showResetTime)] : [];
     const dim = mark === "!" || (source != null && now - source.observedAt > STALE_AFTER);
     groups.push({ providerId: p.id, name: p.name, icon: p.icon, mark, dim, segments });
   }

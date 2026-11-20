@@ -57,7 +57,7 @@ export function parse(text, now) {
 export default {
   id: "gemini",
   name: "Gemini",
-  icon: "icons/gemini.svg",
+  icon: "mods/usage-limits/icons/gemini.svg",
   helper: "helpers/gemini-usage.sh",
   parse,
 };

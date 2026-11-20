@@ -8,7 +8,7 @@ import { HoverCard, h_flex, v_flex } from "gpui-base";
 import { exec, focused, theme, props, shared, setShared, appHome } from "herdr";
 import { PROVIDERS } from "./providers/index.js";
 import { barModel, cardModel, chooseDensity, panelOnEnter } from "./lib/view.js";
-import { effectivePrefs, isOnBar, isShown, toggleOnBar, toggleProvider, toggleShowBars, toggleShowResetTime, toggleWindow } from "./lib/prefs.js";
+import { effectivePrefs, isOnBar, isShown, toggleOnBar, toggleProvider, toggleShowBars, toggleShowResetTime } from "./lib/prefs.js";
 import { parseSession, sessionOnBar, sessionView } from "./lib/session.js";
 import { nextState } from "./lib/state.js";
 
@@ -294,17 +294,12 @@ export default class UsageLimits extends View {
       const reason = s.installed === false ? "not installed" : s.report && s.report.status !== "ok" ? s.report.message : null;
       rows.push(this.check(`p-${p.id}`, on, [image(p.icon).size(13), div().text_color(s.installed === false ? t.dim : t.foreground).child(p.name)],
         () => save(toggleProvider(this.prefs(), p.id)), t, 0, reason));
-      const windows = (s.report?.status === "ok" ? s.report : s.lastGood)?.windows ?? [];
-      for (const w of windows) {
-        rows.push(this.check(`w-${p.id}-${w.id}`, on && isShown(prefs, p.id, w.id), [div().text_color(on ? t.muted : t.dim).child(w.long)],
-          () => save(toggleWindow(this.prefs(), p.id, w.id)), t, 21));
-      }
     }
     return this.shell(t)
       .child(h_flex().gap(6).items_center().h(24)
         .when(canGoBack, (e) => e.child(this.iconButton("ul-back", "back", "Back to limits", true, (cx) => this.show("limits", cx), t)))
         .child(div().font_semibold().child("Settings")))
-      .child(div().text_size(11).text_color(t.dim).child("What the bar shows. This panel always shows everything."))
+      .child(div().text_size(11).text_color(t.dim).child("The bar shows each provider's 5-hour limit. This panel always shows everything."))
       .child(v_flex().gap(1).children(rows))
       .child(div().h(1).bg(t.border).flex_none())
       .child(this.check("opt-reset-time", prefs.showResetTime, [div().text_color(t.foreground).child("Always show time to reset")],
