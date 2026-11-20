@@ -74,7 +74,9 @@ const SORTS = [
   { id: "grouped", label: "Grouped by space", icon: "layers" },
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[0];
-const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
+// Idle agents whose prompt cache went cold sort below the warm idle ones, in a section of their own.
+const COLD = 0.5;
+const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle", [COLD]: "Cold cache" };
 const SECTION_STATUS = { 4: "blocked", 3: "done", 2: "working" };
 
 function duration(ms) {
@@ -214,6 +216,13 @@ export default class Agents extends View {
       localStorage.setItem("cacheWarned", JSON.stringify(this.cacheWarned));
     }
     cx.notify();
+  }
+
+  // Cold: known to have gone cold, and not working (a working agent is rebuilding it).
+  cold(a, now) {
+    if (!this.cacheable(a) || a.status === "working") return false;
+    const left = this.cacheLeft(a, now);
+    return left !== null && left <= 0;
   }
 
   // A countdown in the last minutes, a snowflake once cold; nothing while working or warm.
@@ -423,7 +432,10 @@ export default class Agents extends View {
     const tabCounts = new Map();
     for (const a of list) tabCounts.set(a.tab, (tabCounts.get(a.tab) ?? 0) + 1);
     const byPriority = sort.id === "priority";
-    const urgency = new Map(list.map((a) => [a.address, Math.max(this.rank(a), this.waiting(a) ? RANK.working : 0, ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0))]));
+    const urgency = new Map(list.map((a) => {
+      const r = Math.max(this.rank(a), this.waiting(a) ? RANK.working : 0, ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0));
+      return [a.address, r === RANK.idle && this.cold(a, now) ? COLD : r];
+    }));
     const rankOf = (a) => urgency.get(a.address);
     if (byPriority) list = [...list].sort((x, y) => rankOf(y) - rankOf(x) || this.since(y) - this.since(x) || y.seq - x.seq);
     const pinned = list.filter((a) => a.pinned);
@@ -575,7 +587,7 @@ export default class Agents extends View {
       const r = rankOf(a) || RANK.idle;
       const id = byPriority ? `sec-${r}` : `sp-${a.space}`;
       if (groups.at(-1)?.id === id) groups.at(-1).members.push(a);
-      else groups.push({ id, label: byPriority ? SECTION[r] : a.space_name || "", status: byPriority ? SECTION_STATUS[r] : null, members: [a] });
+      else groups.push({ id, label: byPriority ? SECTION[r] : a.space_name || "", status: byPriority ? SECTION_STATUS[r] : null, color: byPriority && r === COLD ? t.ansi4 : null, members: [a] });
     }
 
     // A group's header; it folds the group. Folded, it says how many and the most urgent state.
@@ -598,7 +610,7 @@ export default class Agents extends View {
           open ? this.folded.add(g.id) : this.folded.delete(g.id);
           cx.notify();
         })
-        .child(div().truncate().text_color(t[g.status] ?? t.dim).child(g.label))
+        .child(div().truncate().text_color(g.color ?? t[g.status] ?? t.dim).child(g.label))
         .when(byPriority || !open, (el) => el.child(div().text_color(t.dim).child(String(g.members.length))))
         .child(div().flex_1())
         .when(!open, (el) => el
