@@ -26,13 +26,32 @@ state_file="$git_dir/handover-branch"
 
 block() {
   echo "branch-handover: $1" >&2
+  [ -n "${git_err:-}" ] && printf 'git said: %s\n' "$git_err" >&2
   exit 2
+}
+
+# Runs git, retrying while another git process (an editor, a status bar, a
+# sidebar) briefly holds index.lock or a ref lock. The last error is left in
+# $git_err.
+git_retry() {
+  local attempt
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if git_err=$(git "$@" 2>&1 >/dev/null); then
+      git_err=
+      return 0
+    fi
+    case "$git_err" in
+      *".lock"*"File exists"* | *"Unable to create"*".lock"* | *"cannot lock ref"*) sleep 0.2 ;;
+      *) return 1 ;;
+    esac
+  done
+  return 1
 }
 
 release() {
   local branch
   branch=$(git -C "$worktree" symbolic-ref --quiet --short HEAD) || exit 0
-  git -C "$worktree" switch --quiet --detach 2>/dev/null || exit 0
+  git_retry -C "$worktree" switch --quiet --detach || exit 0
   echo "$branch" >"$state_file"
 }
 
@@ -60,13 +79,13 @@ reclaim() {
     [ "$holder" = "$main_folder" ] ||
       block "$branch is checked out in $holder. Switch that folder to another branch, then prompt again."
     # Detach in place: the main folder keeps its files, uncommitted changes and commit.
-    git -C "$main_folder" switch --quiet --detach 2>/dev/null ||
+    git_retry -C "$main_folder" switch --quiet --detach ||
       block "could not detach $main_folder from $branch."
   fi
 
-  git -C "$worktree" switch --quiet "$branch" 2>/dev/null ||
-    block "could not check out $branch in this worktree; its uncommitted changes probably conflict with new commits on $branch. Resolve that in $worktree, then prompt again."
-  git -C "$worktree" merge --quiet --ff-only "$detached_head" 2>/dev/null ||
+  git_retry -C "$worktree" switch --quiet "$branch" ||
+    block "could not check out $branch in this worktree (see git's error below; uncommitted changes that conflict with new commits on $branch are the usual cause). Resolve that in $worktree, then prompt again."
+  git_retry -C "$worktree" merge --quiet --ff-only "$detached_head" ||
     block "could not fast-forward $branch to $detached_head."
   rm -f "$state_file"
 }
