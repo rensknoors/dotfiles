@@ -60,6 +60,7 @@ fi
 
 echo "==> Claude Code"
 mkdir -p "$HOME/.claude/hooks"
+link "$ROOT/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 HANDOVER="$HOME/.claude/hooks/branch-handover.sh"
 link "$ROOT/claude/hooks/branch-handover.sh" "$HANDOVER"
 COLD_CACHE="$HOME/.claude/hooks/cold-cache.py"

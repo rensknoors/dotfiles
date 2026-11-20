@@ -34,6 +34,8 @@ cursor --list-extensions | sort > cursor/extensions.txt
 
 ## Claude Code
 
+`claude/CLAUDE.md` holds my instructions for every project and is symlinked to `~/.claude/CLAUDE.md`, so edits there write back to this repo. Commit them.
+
 `claude/hooks/branch-handover.sh` is symlinked to `~/.claude/hooks/` and registered (via `jq`) for `UserPromptSubmit`, `Stop` and `SessionEnd` in `~/.claude/settings.json`; other settings are left alone.
 
 It applies to agent worktrees under `<repo>/.claude/worktrees/`: when the agent goes idle the worktree detaches and releases its branch, so you can check it out in the main folder. On a follow-up prompt the worktree takes the branch back. If the main folder has that branch checked out, it is detached at the same commit, keeping its files and uncommitted changes, so you can keep using git there. It blocks with a message instead of losing diverged work.
