@@ -1,4 +1,4 @@
-// Usage limits: every Claude Code / Codex limit window in the status bar, and one
+// Usage limits: every Claude Code / Codex / Gemini limit window in the status bar, and one
 // panel on hover: the details, and behind ⚙ the checkboxes to choose what shows.
 //
 // Data comes from small helpers that run the CLIs themselves (helpers/*.sh);
@@ -319,7 +319,7 @@ export default class UsageLimits extends View {
           return this.check(`s-${row}`, isOnBar(prefs, row), [div().text_color(t.foreground).child(name)],
             () => save(toggleOnBar(this.prefs(), row)), t);
         })))
-      .child(div().text_size(10.5).text_color(t.dim).child("Data: claude and codex CLIs, numbers from session logs."));
+      .child(div().text_size(10.5).text_color(t.dim).child("Data: claude, codex and agy CLIs, numbers from session logs."));
   }
 
   render(cx) {
