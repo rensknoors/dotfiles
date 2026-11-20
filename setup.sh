@@ -64,18 +64,23 @@ HANDOVER="$HOME/.claude/hooks/branch-handover.sh"
 link "$ROOT/claude/hooks/branch-handover.sh" "$HANDOVER"
 COLD_CACHE="$HOME/.claude/hooks/cold-cache.py"
 link "$ROOT/claude/hooks/cold-cache.py" "$COLD_CACHE"
+HERDR_LOCATION="$HOME/.claude/hooks/herdr-location.sh"
+link "$ROOT/claude/hooks/herdr-location.sh" "$HERDR_LOCATION"
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 
-# register_hook <command> <event>...: adds the command to each event once.
+# register_hook [--matcher <tools>] <command> <event>...: adds the command to each event once.
 register_hook() {
-  local cmd="$1" tmp
+  local matcher="" cmd tmp
+  if [[ $1 == --matcher ]]; then matcher="$2"; shift 2; fi
+  cmd="$1"
   shift
   tmp="$(mktemp)"
-  jq --arg cmd "$cmd" --args '
+  jq --arg cmd "$cmd" --arg matcher "$matcher" --args '
     reduce $ARGS.positional[] as $e (.;
       if any(.hooks[$e][]?.hooks[]?; .command == $cmd) then .
-      else .hooks[$e] += [{hooks: [{type: "command", command: $cmd}]}] end)
+      else .hooks[$e] += [{hooks: [{type: "command", command: $cmd}]}
+        + (if $matcher == "" then {} else {matcher: $matcher} end)] end)
   ' "$@" < "$CLAUDE_SETTINGS" > "$tmp" && mv "$tmp" "$CLAUDE_SETTINGS"
   echo "    registered ${cmd:t} for $* in $CLAUDE_SETTINGS"
 }
@@ -84,15 +89,20 @@ if command -v jq &>/dev/null; then
   [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
   register_hook "$HANDOVER" UserPromptSubmit Stop SessionEnd
   register_hook "$COLD_CACHE" UserPromptSubmit
+  register_hook "$HERDR_LOCATION" SessionStart UserPromptSubmit Stop SessionEnd
+  register_hook --matcher "EnterWorktree|ExitWorktree" "$HERDR_LOCATION" PostToolUse
 else
   echo "    jq not found, skipped registering Claude hooks"
 fi
+
+echo "==> Herdr"
+"$ROOT/herdr/sync.sh" install
 
 if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   echo "==> Homebrew"
   export HOMEBREW_NO_AUTO_UPDATE=1
-  for pkg in spaceship nvm; do
+  for pkg in spaceship nvm skillshare; do
     if brew list --formula "$pkg" &>/dev/null; then
       echo "    $pkg already installed"
     else
@@ -100,7 +110,7 @@ if [[ -x /opt/homebrew/bin/brew ]]; then
     fi
   done
 else
-  echo "==> Homebrew not found; skipped spaceship/nvm"
+  echo "==> Homebrew not found; skipped spaceship/nvm/skillshare"
   echo "    https://brew.sh then re-run $0"
 fi
 
