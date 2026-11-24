@@ -33,7 +33,7 @@
               "id": "spaces",
               "type": "block",
               "content": {
-                "mod": "my-spaces"
+                "mod": "roundup-spaces"
               },
               "size": {
                 "weight": 1
@@ -87,7 +87,7 @@
               "id": "tabs",
               "type": "block",
               "content": {
-                "mod": "my-tabs",
+                "mod": "roundup-tabs",
                 "props": {
                   "pr": 3
                 }
@@ -138,7 +138,7 @@
                 "pane": {
                   "header": {
                     "content": {
-                      "mod": "pane"
+                      "mod": "roundup-pane"
                     },
                     "reveal": "always",
                     "height": 30,
@@ -171,7 +171,7 @@
                       "id": "files",
                       "type": "block",
                       "content": {
-                        "mod": "files"
+                        "mod": "roundup-files"
                       }
                     },
                     {
@@ -283,5 +283,6 @@
   "traffic_lights": [
     12,
     16
-  ]
+  ],
+  "terminal_menu": "roundup-pane"
 }
