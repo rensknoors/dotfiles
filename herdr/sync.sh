@@ -8,7 +8,8 @@
 # Copies, not symlinks: Herdr reloads a layout, key or mod when a file changes inside its home,
 # and doesn't notice a change made through a symlink.
 #
-# Yours, and so kept here: keys.json, settings.json, and the layouts, themes and mods Herdr
+# Yours, and so kept here: keys.json, settings.json, AGENTS.local.md (notes on this setup for
+# agents, such as the local changes to installed mods), and the layouts, themes and mods Herdr
 # doesn't ship (installed.json lists the shipped ones). Each layout, theme or mod is one item.
 # Mods in EXTERNAL update themselves; install fetches them instead.
 #
@@ -39,7 +40,7 @@ fi
 # units <root>: the items under <root> that are yours, one per line.
 units() {
   local root=$1 f name
-  for f in keys.json settings.json; do
+  for f in keys.json settings.json AGENTS.local.md; do
     if [[ -f $root/$f ]]; then print -r -- $f; fi
   done
   for f in $root/layouts/*.(json|svg|png)(N.); do
