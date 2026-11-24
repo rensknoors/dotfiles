@@ -24,6 +24,21 @@ esac
 
 state_file="$git_dir/handover-branch"
 
+# Serialize runs on this worktree: if the hook is registered twice (global and
+# project settings), Claude Code starts both at once and they would race to
+# switch branches. A second run waits here, then finds the work already done.
+lock_dir="$git_dir/handover.lock"
+for _ in $(seq 1 100); do
+  mkdir "$lock_dir" 2>/dev/null && break
+  # A lock older than a minute was left by a killed run; take it over.
+  if [ -n "$(find "$lock_dir" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+    rmdir "$lock_dir" 2>/dev/null
+    continue
+  fi
+  sleep 0.1
+done
+trap 'rmdir "$lock_dir" 2>/dev/null' EXIT
+
 block() {
   echo "branch-handover: $1" >&2
   [ -n "${git_err:-}" ] && printf 'git said: %s\n' "$git_err" >&2
