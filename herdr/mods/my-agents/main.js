@@ -433,7 +433,9 @@ export default class Agents extends View {
     for (const a of list) tabCounts.set(a.tab, (tabCounts.get(a.tab) ?? 0) + 1);
     const byPriority = sort.id === "priority";
     const urgency = new Map(list.map((a) => {
-      const r = Math.max(this.rank(a), this.waiting(a) ? RANK.working : 0, ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0));
+      // Waiting sorts as working, not done: it isn't finished until its background work is.
+      const own = this.waiting(a) ? RANK.working : this.rank(a);
+      const r = Math.max(own, ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0));
       return [a.address, r === RANK.idle && this.cold(a, now) ? COLD : r];
     }));
     const rankOf = (a) => urgency.get(a.address);
