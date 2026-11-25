@@ -2,7 +2,8 @@
 {"agents": [{"id", "label", "type"}], "tasks": [{"id", "label"}]}
 
 agents: sub-agents (Agent tool) whose meta file isn't finished yet.
-tasks: background shell commands and monitors with no task-notification yet.
+tasks: background shell commands and monitors with no task-notification yet, and not stopped
+with TaskStop (a stopped task gets no notification).
 Exit 1 when no session belongs to the process (never a guess).
 """
 
@@ -58,7 +59,7 @@ now = time.time()
 with open(transcript, errors="replace") as f:
     for line in f:
         notified.update(re.findall(r"<task-id>([^<]+)</task-id>", line))
-        if '"tool_use"' not in line and "backgroundTaskId" not in line and '"taskId"' not in line:
+        if not any(key in line for key in ('"tool_use"', "backgroundTaskId", '"taskId"', '"task_id"')):
             continue
         try:
             entry = json.loads(line)
@@ -74,6 +75,10 @@ with open(transcript, errors="replace") as f:
             elif block.get("type") == "tool_result":
                 result = entry.get("toolUseResult")
                 if not isinstance(result, dict):
+                    continue
+                # TaskStop's result: a dict only when the stop succeeded.
+                if result.get("task_id") and result.get("task_type"):
+                    notified.add(result["task_id"])
                     continue
                 task = result.get("backgroundTaskId") or result.get("taskId")
                 if not task or result.get("isAsync"):
