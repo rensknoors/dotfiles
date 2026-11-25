@@ -5,6 +5,8 @@ import { readTextFile, exec, theme, settings, window } from "herdr";
 import { readFailure, tooLong, wholeLines, checked, codeValue } from "../text-file.js";
 import { programs } from "../programs.js";
 import { systemOf } from "../platform.js";
+// local: Monospace syntax colors for the code view.
+import { editorSyntax } from "../monospace.js";
 
 const HEAD = 4 * 1024 * 1024; // more than text-file.js's LIMIT characters in any encoding; readTextFile stops at 1 MiB
 
@@ -27,11 +29,11 @@ export async function readLongText(file, on) {
 
 /** `cut`: the text is only the file's head (readLongText), however short it came back. */
 export function codeState(text, language, cut = false) {
-  const t = theme();
   return EditorState.new({ language, readonly: true,
     value: codeValue(text, cut),
     font_family: settings().font_family, font_size: 13,
-    syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6 } });
+    // local: Monospace syntax colors (monospace.js), as in git-diff, instead of the terminal's ANSI colors.
+    syntax: editorSyntax() });
 }
 
 /** `el` in a box that tells the preview a press in it took the keyboard (env.ownsKeys): the

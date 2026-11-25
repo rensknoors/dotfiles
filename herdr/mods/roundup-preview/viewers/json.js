@@ -8,6 +8,8 @@ import { theme, settings } from "herdr";
 import { flatten, containers, toggleDeep } from "../json-tree.js";
 import { readText, codeState, codeView } from "./text.js";
 import { rawToggle, iconButton } from "./controls.js";
+// local: Monospace colors for the tree.
+import { palette } from "../monospace.js";
 
 const ROW = 24;
 let views = 0;
@@ -41,10 +43,13 @@ export default {
   render(state, env) {
     if (state.raw) return codeView(state.editor, env);
     const t = theme();
-    const color = { string: t.ansi2, number: t.ansi1, boolean: t.ansi6, null: t.ansi6, object: t.dim, array: t.dim };
+    // local: Monospace colors (monospace.js), as in git-diff, instead of the terminal's ANSI colors.
+    const p = palette();
+    const color = { string: p.string, number: p.constant, boolean: p.constant, null: p.constant, object: p.comment, array: p.comment };
     const row = (r) => h_flex().h(ROW).pl(14 + r.depth * 18).pr(14).gap(6).items_center()
       .child(div().w(10).flex_none().text_color(t.dim).child(r.kind === "object" || r.kind === "array" ? (r.open ? "▾" : "▸") : ""))
-      .when(r.key !== null, (el) => el.child(div().flex_none().text_color(typeof r.key === "number" ? t.dim : t.ansi4).child(typeof r.key === "number" ? `${r.key}:` : `${JSON.stringify(r.key)}:`)))
+      // local: object keys in Monospace's property color, array indexes in its comment color.
+      .when(r.key !== null, (el) => el.child(div().flex_none().text_color(typeof r.key === "number" ? p.comment : p.property).child(typeof r.key === "number" ? `${r.key}:` : `${JSON.stringify(r.key)}:`)))
       .child(div().flex_1().min_w(0).truncate().text_color(color[r.kind]).child(r.text));
     // The press carries the modifiers; the list's click that follows doesn't.
     return v_flex().id(`${state.id}-tree`).flex_1().min_h(0).relative().py(6).on_mouse_down("left", (e) => { state.alt = Boolean(e.modifiers?.alt); }).font_family(settings().font_family ?? "JetBrains Mono").text_size(12.5)

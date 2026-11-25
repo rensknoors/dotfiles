@@ -11,7 +11,7 @@ layout `my-main`, not as Roundup's whole layout:
 | `roundup-tabs` | `tabs` block, `props: {pr: 3}` (replaced `my-tabs`) | yes, see below |
 | `roundup-pane` | pane header and root `terminal_menu` (replaced shipped `pane`) | none |
 | `roundup-files` | `files` block in `panel-body` (replaced shipped `files`) | none |
-| `roundup-preview` | opened by `roundup-files` | none |
+| `roundup-preview` | opened by `roundup-files` | yes, see below |
 | `roundup-confirm` | close prompt for `roundup-tabs` / `roundup-pane` | none |
 | `roundup-menu` | space right-click menu for `roundup-spaces` | none |
 
@@ -35,6 +35,12 @@ Every local change in a Roundup mod carries a `// local:` comment on the line ab
   `.px(10)`, because `my-main` puts the skillshare and claude-context toggles right of the bar.
 - `roundup-tabs/main.js`, the Changes panel button: labelled `"Git"` with icon
   `mods/my-changes/branch.svg`, because that panel is `my-changes`.
+- `roundup-preview/monospace.js`, a new file of my own: the Monospace syntax palette, copied from
+  `git-diff/highlight.js` (a mod can't import another mod's files). Keep the two in step.
+- `roundup-preview/viewers/text.js`, `codeState`: the editor's `syntax` comes from `editorSyntax()`
+  (Monospace) instead of the theme's ANSI colors, so previews look like the Git diff pane.
+- `roundup-preview/viewers/json.js`, the tree's `render`: values and keys in the Monospace palette
+  instead of ANSI colors.
 
 Record any new local change here, and mark it with a `// local:` comment in the code.
 
