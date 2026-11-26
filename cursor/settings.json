@@ -52,7 +52,6 @@
   "editor.indentSize": 2,
   "symbols.hidesExplorerArrows": false,
   "redhat.telemetry.enabled": false,
-  "window.zoomLevel": 1,
   "dotnet.defaultSolution": "/usr/local/share/dotnet/dotnet",
   "editor.pasteAs.preferences": ["text.updateImports.jsts"],
   "cursor.cpp.disabledLanguages": ["yaml", "markdown"],
