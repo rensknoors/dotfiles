@@ -10,17 +10,22 @@ set -u
 input=$(cat)
 event=$(jq -r '.hook_event_name // empty' <<<"$input")
 cwd=$(jq -r '.cwd // empty' <<<"$input")
-[ -n "$cwd" ] || exit 0
 
-worktree=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || exit 0
+# The session's worktree: the one its shell is in, or else the one it started
+# in. A worker's shell can leave its worktree (to write a report elsewhere), and
+# a session that entered a worktree later started in the main folder.
+worktree=
+for dir in "$cwd" "${CLAUDE_PROJECT_DIR:-}"; do
+  [ -n "$dir" ] || continue
+  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || continue
+  common_dir=$(cd "$top" && cd "$(git rev-parse --git-common-dir)" && pwd -P)
+  main_folder=$(dirname "$common_dir")
+  case "$(cd "$top" && pwd -P)" in
+    "$main_folder/.claude/worktrees/"*) worktree=$top && break ;;
+  esac
+done
+[ -n "$worktree" ] || exit 0
 git_dir=$(git -C "$worktree" rev-parse --absolute-git-dir)
-common_dir=$(cd "$worktree" && cd "$(git rev-parse --git-common-dir)" && pwd -P)
-main_folder=$(dirname "$common_dir")
-
-case "$(cd "$worktree" && pwd -P)" in
-  "$main_folder/.claude/worktrees/"*) ;;
-  *) exit 0 ;;
-esac
 
 state_file="$git_dir/handover-branch"
 
