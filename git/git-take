@@ -1,0 +1,52 @@
+#!/bin/bash
+# git take <branch>: check <branch> out in this folder, even while an agent's
+# worktree under <repo>/.claude/worktrees/ holds it. That worktree is detached in
+# place (its files and uncommitted changes untouched) and marked to take the
+# branch back: branch-handover.sh, a Claude Code hook, does that at its agent's
+# next prompt and detaches this folder in turn.
+#
+# For a worktree that an agent outside Claude Code (Antigravity, say) left on a
+# branch: those agents run no hook, so nothing releases the branch by itself.
+set -euo pipefail
+
+[ $# -eq 1 ] || { echo "usage: git take <branch>" >&2; exit 1; }
+branch=$1
+
+git show-ref --verify --quiet "refs/heads/$branch" ||
+  { echo "git take: no local branch $branch" >&2; exit 1; }
+
+if [ "$(git symbolic-ref --quiet HEAD || true)" = "refs/heads/$branch" ]; then
+  echo "git take: already on $branch"
+  exit 0
+fi
+
+# Linked worktrees holding the branch. The first entry is the main folder (git
+# lists it as .git/modules/<name> for a submodule), checked apart.
+holder=$(git worktree list --porcelain |
+  awk -v ref="refs/heads/$branch" '/^worktree /{n++; path=substr($0,10)} n>1 && $1=="branch" && $2==ref{print path}')
+
+if [ -n "$holder" ]; then
+  holder=$(cd "$holder" && pwd -P)
+  case "$holder" in
+    */.claude/worktrees/*) ;;
+    *) echo "git take: $branch is checked out in $holder, which isn't an agent worktree; switch it there yourself" >&2; exit 1 ;;
+  esac
+  git_dir=$(git -C "$holder" rev-parse --absolute-git-dir)
+
+  # The same lock branch-handover.sh takes, so a hook run can't switch it meanwhile.
+  lock_dir="$git_dir/handover.lock"
+  for _ in $(seq 1 100); do
+    mkdir "$lock_dir" 2>/dev/null && break
+    sleep 0.1
+  done
+  [ -d "$lock_dir" ] || { echo "git take: $lock_dir is held; try again" >&2; exit 1; }
+  trap 'rmdir "$lock_dir" 2>/dev/null' EXIT
+
+  git -C "$holder" switch --quiet --detach
+  echo "$branch" >"$git_dir/handover-branch"
+  rmdir "$lock_dir" 2>/dev/null
+  trap - EXIT
+  echo "git take: detached $holder; its agent takes $branch back at its next prompt"
+fi
+
+git switch "$branch"

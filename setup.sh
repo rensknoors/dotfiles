@@ -30,6 +30,8 @@ git -C "$ROOT" submodule update --init --recursive
 
 echo "==> Symlinks"
 link "$ROOT/.zshrc" "$HOME/.zshrc"
+mkdir -p "$HOME/.local/bin"
+link "$ROOT/git/git-take" "$HOME/.local/bin/git-take"
 link "$ROOT/.zsh" "$HOME/.zsh"
 
 CURSOR_USER="$HOME/Library/Application Support/Cursor/User"
