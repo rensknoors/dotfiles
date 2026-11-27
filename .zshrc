@@ -5,9 +5,21 @@ export ZSH_PLUGINS="$HOME/.zsh/plugins"
 # Brew
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 
-# NVM
+# Completion: set up once, from the cache; rebuild at most once a day.
+# Must come before nvm, whose completion script otherwise runs a full compinit.
+[[ -d "$ZSH_PLUGINS/zsh-completions/src" ]] && fpath=("$ZSH_PLUGINS/zsh-completions/src" $fpath)
+autoload -Uz compinit bashcompinit
+_zcd=(~/.zcompdump(N.mh+24))
+if (( $#_zcd )); then compinit; else compinit -C; fi
+unset _zcd
+bashcompinit
+
+# NVM: load without switching versions (slow); put the default Node on PATH directly
 export NVM_DIR="$HOME/.nvm"
-[[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]] && . "/opt/homebrew/opt/nvm/nvm.sh"
+[[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]] && . "/opt/homebrew/opt/nvm/nvm.sh" --no-use
+_nvm_default=($NVM_DIR/versions/node/v24*(N/On))
+(( $#_nvm_default )) && export PATH="$_nvm_default[1]/bin:$PATH"
+unset _nvm_default
 [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 
 # Spaceship
@@ -70,7 +82,6 @@ _source_if_exists "$ZSH_PLUGINS/zsh-autosuggestions/zsh-autosuggestions.plugin.z
 _source_if_exists "$ZSH_PLUGINS/zsh-git/zsh-git.zsh"
 _source_if_exists "$ZSH_PLUGINS/zsh-alias-finder/zsh-alias-finder.zsh"
 _source_if_exists "$ZSH_PLUGINS/zsh-nx-completion/nx-completion.plugin.zsh"
-[[ -d "$ZSH_PLUGINS/zsh-completions/src" ]] && fpath=("$ZSH_PLUGINS/zsh-completions/src" $fpath)
 unfunction _source_if_exists
 
 # Optional PATH entries (skipped if not installed)
@@ -92,5 +103,4 @@ fi
 . "$HOME/.config/vite-plus/env"
 
 # Azure CLI completion
-autoload bashcompinit && bashcompinit
-source $(brew --prefix)/etc/bash_completion.d/az
+[[ -f "$HOMEBREW_PREFIX/etc/bash_completion.d/az" ]] && source "$HOMEBREW_PREFIX/etc/bash_completion.d/az"
