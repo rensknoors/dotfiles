@@ -22,7 +22,7 @@ _nvm_default=($NVM_DIR/versions/node/v24*(N/On))
 unset _nvm_default
 [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 
-# Spaceship
+# Prompt
 # Agent detection - only activate minimal mode for actual agents
 if [[ -n "$npm_config_yes" ]] || [[ -n "$CI" ]] || [[ "$-" != *i* ]]; then
   export AGENT_MODE=true
@@ -36,10 +36,14 @@ if [[ "$AGENT_MODE" == "true" ]]; then
   export NONINTERACTIVE=1
 fi
 
-# Enable Spaceship
-if [[ "$AGENT_MODE" != "true" && -f /opt/homebrew/opt/spaceship/spaceship.zsh ]]; then
-  source /opt/homebrew/opt/spaceship/spaceship.zsh
+# Enable Starship (config: ~/.config/starship.toml, defaults if absent)
+if [[ "$AGENT_MODE" != "true" ]] && (( $+commands[starship] )); then
+  eval "$(starship init zsh)"
 fi
+# Fallback: Spaceship (slower to load). Swap with the block above to go back.
+# if [[ "$AGENT_MODE" != "true" && -f /opt/homebrew/opt/spaceship/spaceship.zsh ]]; then
+#   source /opt/homebrew/opt/spaceship/spaceship.zsh
+# fi
 
 # Set Oh My Zsh theme conditionally - disable for agents only
 if [[ "$AGENT_MODE" == "true" ]]; then

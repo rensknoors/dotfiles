@@ -103,7 +103,7 @@ if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   echo "==> Homebrew"
   export HOMEBREW_NO_AUTO_UPDATE=1
-  for pkg in spaceship nvm skillshare; do
+  for pkg in starship nvm skillshare; do
     if brew list --formula "$pkg" &>/dev/null; then
       echo "    $pkg already installed"
     else
@@ -111,7 +111,7 @@ if [[ -x /opt/homebrew/bin/brew ]]; then
     fi
   done
 else
-  echo "==> Homebrew not found; skipped spaceship/nvm/skillshare"
+  echo "==> Homebrew not found; skipped starship/nvm/skillshare"
   echo "    https://brew.sh then re-run $0"
 fi
 

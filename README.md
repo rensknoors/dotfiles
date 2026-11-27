@@ -16,7 +16,7 @@ The script:
 - fetches zsh plugins
 - backs up existing `~/.zshrc` / `~/.zsh` / Cursor settings
 - symlinks this repo in place
-- installs Spaceship, nvm and skillshare if Homebrew is present
+- installs Starship, nvm and skillshare if Homebrew is present
 - installs Cursor extensions from `cursor/extensions.txt`
 - copies the Herdr setup into `~/.config/herdr-app` (see [Herdr](#herdr))
 
