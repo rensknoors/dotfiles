@@ -22,6 +22,8 @@ The script:
 
 Re-run after `git pull` to sync plugins, repair links, and install any new extensions.
 
+New shells warn when a pull changed something `setup.sh` handles since it last ran on this machine: `setup.sh` itself, `.gitmodules`, `cursor/extensions.txt` or a plugin's submodule version. `setup.sh` records the commit it ran at in `~/.local/state/dotfiles/setup-commit`; after a pull, `.zshrc` diffs that commit against `HEAD`. A pull that changed none of those just moves the record forward.
+
 ## Cursor
 
 `settings.json` and `keybindings.json` live in `cursor/` and are symlinked into `~/Library/Application Support/Cursor/User/`. Edits in Cursor write back to this repo — commit them.

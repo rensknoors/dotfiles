@@ -115,5 +115,10 @@ else
   echo "    https://brew.sh then re-run $0"
 fi
 
+# Record the commit this machine's setup ran at; .zshrc warns when a pull changes what setup handles.
+SETUP_STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/setup-commit"
+mkdir -p "${SETUP_STAMP:h}"
+git -C "$ROOT" rev-parse HEAD > "$SETUP_STAMP"
+
 echo
 echo "Done. Reload with:  exec zsh"

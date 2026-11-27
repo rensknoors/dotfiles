@@ -108,3 +108,44 @@ fi
 
 # Azure CLI completion
 [[ -f "$HOMEBREW_PREFIX/etc/bash_completion.d/az" ]] && source "$HOMEBREW_PREFIX/etc/bash_completion.d/az"
+
+# Warn when a pull changed what setup.sh handles since it last ran here. setup.sh records the
+# commit it ran at; the repo's HEAD is read from .git directly, so git only runs after a pull.
+# What counts: setup.sh, .gitmodules, cursor/extensions.txt and plugin (submodule) versions.
+# Everything else is symlinked into place, so a pull alone updates it.
+if [[ "$AGENT_MODE" != "true" ]]; then
+  () {
+    local repo=${${(%):-%x}:A:h}
+    local stamp=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/setup-commit
+    local run="Run: ${repo/#$HOME/~}/setup.sh"
+    local head ran line
+    local -a raw changed
+    [[ -r $repo/.git/HEAD ]] || return 0
+    read -r head < $repo/.git/HEAD
+    if [[ $head == "ref: "* ]]; then
+      if [[ -r $repo/.git/${head#ref: } ]]; then read -r head < $repo/.git/${head#ref: }
+      else head=$(git -C $repo rev-parse -q --verify HEAD) || return 0
+      fi
+    fi
+    if [[ ! -r $stamp ]]; then
+      print -P "%F{yellow}dotfiles:%f setup.sh hasn't recorded a run on this machine. $run"
+      return 0
+    fi
+    read -r ran < $stamp
+    [[ $ran == $head ]] && return 0
+    raw=(${(f)"$(git -C $repo diff --raw $ran $head -- setup.sh .gitmodules cursor/extensions.txt .zsh/plugins 2>/dev/null)"}) || {
+      print -P "%F{yellow}dotfiles:%f can't tell what changed since setup.sh last ran here. $run"
+      return 0
+    }
+    for line in $raw; do
+      # Under .zsh/plugins only submodule pointers (mode 160000) need setup; plain files are symlinked.
+      [[ ${line#*$'\t'} == .zsh/plugins/* && $line != :160000* && $line != ":"<->" 160000"* ]] && continue
+      changed+=(${line#*$'\t'})
+    done
+    if (( $#changed )); then
+      print -P "%F{yellow}dotfiles:%f a pull changed ${(j:, :)changed}. $run"
+    else
+      print -r -- $head > $stamp
+    fi
+  }
+fi
