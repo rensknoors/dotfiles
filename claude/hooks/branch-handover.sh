@@ -1,30 +1,85 @@
 #!/bin/bash
-# Claude Code hook: a worktree under .claude/worktrees/ holds its branch only
-# while its agent is working, so the branch can be checked out in the main
-# folder whenever the agent is idle.
-#   Stop, SessionEnd   -> detach the worktree, releasing the branch
-#   UserPromptSubmit   -> take the branch back; if the main folder has it checked
-#                         out, detach the main folder in place (files untouched)
+# Claude Code hook: a worktree under <repo>/.claude/worktrees/ holds its branch
+# only while its own session is working, so the branch can be checked out in the
+# main folder whenever that session is idle.
+#   Stop, SessionEnd           -> detach the worktree, releasing the branch
+#   UserPromptSubmit           -> take the branch back; if the main folder has it
+#                                 checked out, detach the main folder in place
+#                                 (files untouched)
+#   PostToolUse EnterWorktree  -> make the worktree this session's; take its branch
+#   PostToolUse ExitWorktree   -> release the worktree and forget it
+#   SessionStart after /clear  -> keep an entered worktree for the new session id
+#
+# A session's worktree is the one it started in (CLAUDE_PROJECT_DIR, as for a
+# dispatched worker) or the one it entered with EnterWorktree. Never the one its
+# shell happens to be in: a session that cd's into another agent's worktree (an
+# orchestrator checking a worker) must not take or release that agent's branch.
 set -u
 
 input=$(cat)
 event=$(jq -r '.hook_event_name // empty' <<<"$input")
 cwd=$(jq -r '.cwd // empty' <<<"$input")
+session=$(jq -r '.session_id // empty' <<<"$input")
+tool=$(jq -r '.tool_name // empty' <<<"$input")
+start_source=$(jq -r '.source // empty' <<<"$input")
 
-# The session's worktree: the one its shell is in, or else the one it started
-# in. A worker's shell can leave its worktree (to write a report elsewhere), and
-# a session that entered a worktree later started in the main folder.
+# Which worktree each session entered with EnterWorktree, one file per session id.
+registry_dir="${XDG_STATE_HOME:-$HOME/.local/state}/branch-handover/sessions"
+registry="$registry_dir/${session:-unknown}"
+
+# worktree_of <dir>: prints the top of <dir>'s worktree when it sits at
+# <main folder>/.claude/worktrees/<name> of the same repository. The main folder
+# comes from the path, not from git's common dir: a submodule keeps its common
+# dir in the superproject's .git/modules.
+worktree_of() {
+  local top main
+  [ -n "$1" ] || return 1
+  top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1
+  top=$(cd "$top" && pwd -P)
+  case "$top" in */.claude/worktrees/*) ;; *) return 1 ;; esac
+  main=${top%%/.claude/worktrees/*}
+  [ "$(common_dir_of "$main")" = "$(common_dir_of "$top")" ] || return 1
+  echo "$top"
+}
+
+common_dir_of() {
+  (cd "$1" 2>/dev/null && cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P)
+}
+
+registered_worktree() {
+  local dir
+  [ -f "$registry" ] || return 1
+  dir=$(cat "$registry")
+  [ -d "$dir" ] && echo "$dir"
+}
+
 worktree=
-for dir in "$cwd" "${CLAUDE_PROJECT_DIR:-}"; do
-  [ -n "$dir" ] || continue
-  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || continue
-  common_dir=$(cd "$top" && cd "$(git rev-parse --git-common-dir)" && pwd -P)
-  main_folder=$(dirname "$common_dir")
-  case "$(cd "$top" && pwd -P)" in
-    "$main_folder/.claude/worktrees/"*) worktree=$top && break ;;
-  esac
-done
-[ -n "$worktree" ] || exit 0
+case "$event:$tool" in
+  PostToolUse:EnterWorktree)
+    worktree=$(worktree_of "$cwd") || exit 0
+    mkdir -p "$registry_dir" && echo "$worktree" >"$registry"
+    ;;
+  PostToolUse:ExitWorktree)
+    worktree=$(registered_worktree)
+    rm -f "$registry"
+    [ -n "$worktree" ] || exit 0
+    ;;
+  SessionStart:*)
+    # /clear gives the session a new id; a worktree it had entered stays its own.
+    [ "$start_source" = clear ] || exit 0
+    worktree_of "${CLAUDE_PROJECT_DIR:-}" >/dev/null && exit 0
+    worktree=$(worktree_of "$cwd") || exit 0
+    [ "${worktree%%/.claude/worktrees/*}" = "$(cd "${CLAUDE_PROJECT_DIR:-/nonexistent}" 2>/dev/null && pwd -P)" ] || exit 0
+    mkdir -p "$registry_dir" && echo "$worktree" >"$registry"
+    exit 0
+    ;;
+  *)
+    worktree=$(worktree_of "${CLAUDE_PROJECT_DIR:-}") || worktree=$(registered_worktree) || worktree=
+    [ "$event" = SessionEnd ] && rm -f "$registry"
+    [ -n "$worktree" ] || exit 0
+    ;;
+esac
+main_folder=${worktree%%/.claude/worktrees/*}
 git_dir=$(git -C "$worktree" rev-parse --absolute-git-dir)
 
 state_file="$git_dir/handover-branch"
@@ -92,15 +147,17 @@ reclaim() {
     block "this worktree has commits made while detached ($detached_head) that diverge from $branch. Merge or cherry-pick them onto $branch by hand, then prompt again."
   fi
 
-  holder=$(git -C "$worktree" worktree list --porcelain |
-    awk -v ref="refs/heads/$branch" '/^worktree /{path=substr($0,10)} $1=="branch" && $2==ref{print path}')
-
-  if [ -n "$holder" ]; then
-    [ "$holder" = "$main_folder" ] ||
-      block "$branch is checked out in $holder. Switch that folder to another branch, then prompt again."
+  if [ "$(git -C "$main_folder" symbolic-ref --quiet HEAD)" = "refs/heads/$branch" ]; then
     # Detach in place: the main folder keeps its files, uncommitted changes and commit.
     git_retry -C "$main_folder" switch --quiet --detach ||
       block "could not detach $main_folder from $branch."
+  else
+    # The first entry is the main folder (which git lists as .git/modules/<name>
+    # for a submodule), checked above.
+    holder=$(git -C "$worktree" worktree list --porcelain |
+      awk -v ref="refs/heads/$branch" '/^worktree /{n++; path=substr($0,10)} n>1 && $1=="branch" && $2==ref{print path}')
+    [ -z "$holder" ] ||
+      block "$branch is checked out in $holder. Switch that folder to another branch, then prompt again."
   fi
 
   git_retry -C "$worktree" switch --quiet "$branch" ||
@@ -110,8 +167,8 @@ reclaim() {
   rm -f "$state_file"
 }
 
-case "$event" in
-  Stop | SessionEnd) release ;;
-  UserPromptSubmit) reclaim ;;
+case "$event:$tool" in
+  Stop:* | SessionEnd:* | PostToolUse:ExitWorktree) release ;;
+  UserPromptSubmit:* | PostToolUse:EnterWorktree) reclaim ;;
 esac
 exit 0

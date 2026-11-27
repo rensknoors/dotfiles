@@ -88,7 +88,8 @@ register_hook() {
 
 if command -v jq &>/dev/null; then
   [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
-  register_hook "$HANDOVER" UserPromptSubmit Stop SessionEnd
+  register_hook "$HANDOVER" SessionStart UserPromptSubmit Stop SessionEnd
+  register_hook --matcher "EnterWorktree|ExitWorktree" "$HANDOVER" PostToolUse
   register_hook "$COLD_CACHE" UserPromptSubmit
   register_hook "$HERDR_LOCATION" SessionStart UserPromptSubmit Stop SessionEnd
   register_hook --matcher "EnterWorktree|ExitWorktree" "$HERDR_LOCATION" PostToolUse
